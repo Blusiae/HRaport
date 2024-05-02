@@ -1,0 +1,85 @@
+﻿@page "/report"
+@page "/report/{currency}&{year}&{companyName}"
+@inject EmployeeService _db;
+@inject IPrintingService _printingService
+
+@if(Employees.Count > 0 && chartData.Count() > 0)
+{
+    <MudPaper Class="w-75 mb-5 text-start p-3" Style="overflow-y: scroll; height: 80vh;">
+        <MudContainer id="report">
+            <h1 class="text-center">Raport za rok @Year</h1>
+            <h2 class ="my-3">Firma</h2>
+            <h4 class="my-3">Nazwa firmy</h4>
+            <MudDivider />
+            <MudText Typo="Typo.h5"><small>@CompanyName</small></MudText>
+            <h4 class="my-3">Łączny koszt wynagrodzeń</h4>
+            <MudDivider />
+            <MudText Typo="Typo.h5"><small>@Employees.Sum(e => e.YearSalary) @Currency</small></MudText>
+            <h4 class="my-3">Wykres ocen pracowników</h4>
+            <MudDivider />
+            <MudPaper Width="310px" Elevation="0">
+                <MudChart ChartType="ChartType.Pie" InputData="@chartData" InputLabels="@labels" Width="300px" Height="300px" Class="mt-3" />
+            </MudPaper>
+
+             <h4 class="my-3">Średnia ocena pracowników</h4>
+            <MudDivider />
+            <MudText Typo="Typo.h5"><small>@Math.Round(Employees.Average(e => e.Rating), 1)</small></MudText>
+
+            <h2 class="my-3">Pracownicy</h2>
+            @foreach (var employee in Employees)
+            {
+                <MudPaper Class="ps-3 py-3 my-2">
+                    <h3>@employee.GetFullName() | <small>@employee.Position</small></h3>
+                    <MudRating SelectedValue="@employee.Rating" Class="mb-2" />
+                    <MudDivider />
+                    <h4 class="mt-1">Informacje o pracowniku</h4>
+                    <MudText><b>Płeć:</b> @employee.Gender.ToPolishString()</MudText>
+                        <MudText><b>Data urodzenia:</b> @employee.Birthdate?.ToString("dd MMMM yyyy")</MudText>
+                        <MudText><b>Data zatrudnienia:</b> @employee.EmploymentDate?.ToString("dd MMMM yyyy")</MudText>
+                        <MudText><b>Wynagrodzenie w roku @Year:</b> @employee.YearSalary @Currency</MudText>
+                    </MudPaper>
+            }
+        </MudContainer>
+    </MudPaper>
+
+}
+
+<MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Print" Color="Color.Primary" OnClick="PrintReport" Size="Size.Large" Class="position-absolute" Style="bottom: 5vh">Drukuj raport</MudButton>
+
+
+@code {
+    public List<Employee> Employees { get; set; } = new();
+
+    [Parameter]
+    public string Currency { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Year { get; set; } = string.Empty;
+
+    [Parameter]
+    public string CompanyName { get; set; } = string.Empty;
+
+    string[] labels = { "1", "2", "3", "4", "5" };
+    double[] chartData = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Employees = await _db.GetAllAsync() ?? new();
+
+        chartData = [
+            (double)Employees.Where(e => e.Rating == 1).Count(),
+            (double)Employees.Where(e => e.Rating == 2).Count(),  
+            (double)Employees.Where(e => e.Rating == 3).Count(),
+            (double)Employees.Where(e => e.Rating == 4).Count(),  
+            (double)Employees.Where(e => e.Rating == 5).Count()
+        ];
+
+        await base.OnInitializedAsync();
+    }
+
+    private void PrintReport()
+    {
+        // Wygenerowanie dokumentu pdf do wydrukowania z elementu o id #report
+        _printingService.Print("report", PrintType.Html);
+    }
+}

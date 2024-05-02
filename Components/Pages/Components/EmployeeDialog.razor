@@ -1,0 +1,70 @@
+﻿@using HRaport.Models
+
+<MudDialog>
+    <DialogContent>
+        <MudForm Model="@Model" @ref="form">
+            <MudTextField @bind-Value="Model.FirstName"
+                          For="@(() => Model.FirstName)"
+                          Immediate="true"
+                          Label="Imię" Required="true" />
+
+            <MudTextField @bind-Value="Model.LastName"
+                          For="@(() => Model.LastName)"
+                          Immediate="true"
+                          Label="Nazwisko" Required="true" />
+
+
+            <MudTextField @bind-Value="Model.Position"
+                          For="@(() => Model.Position)"
+                          Immediate="true"
+                          Label="Stanowisko" />
+
+
+            <MudSelect @bind-Value="Model.Gender" Dense="true" Margin="Margin.Dense" T="Gender" Label="Płeć" Variant="Variant.Text" Immediate="true">
+                <MudSelectItem Value="@(Gender.Male)">
+                    <MudIcon Icon="@Icons.Material.Filled.Man4" /> @Gender.Male.ToPolishString()
+                </MudSelectItem>
+                <MudSelectItem Value="@(Gender.Female)">
+                    <MudIcon Icon="@Icons.Material.Filled.Woman" /> @Gender.Female.ToPolishString()
+                </MudSelectItem>
+                <MudSelectItem Value="@(Gender.NonBinary)">
+                    <MudIcon Icon="@Icons.Material.Filled.Man" /> @Gender.NonBinary.ToPolishString()
+                </MudSelectItem>
+            </MudSelect>
+
+            <MudDatePicker Label="Data urodzenia" @bind-Date="Model.Birthdate" Mask="@(new DateMask("dd.MM.yyyy"))" DateFormat="dd.MM.yyyy" Editable="true" DisableToolbar="true" Required="true" />
+            <MudDatePicker Label="Data zatrudnienia" @bind-Date="Model.EmploymentDate" Mask="@(new DateMask("dd.MM.yyyy"))" DateFormat="dd.MM.yyyy" Editable="true" DisableToolbar="true" Required="true" />
+            @if (validationError)
+            {
+                <MudText Color
+                ="Color.Error" Typo="Typo.caption">Uzupełnij wszystkie wymagane pola.</MudText>
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Anuluj</MudButton>
+        <MudButton Color="Color.Success" OnClick="Submit">Zatwierdź</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; } = new();
+    [Parameter]
+    public Employee Model { get; set; } = new();
+    MudForm form = new();
+    private bool validationError = false;
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit()
+    {
+        if(form.IsValid)
+        {
+            MudDialog.Close(DialogResult.Ok(Model));
+        }
+        else
+        {
+            validationError = true;
+        }
+    }
+}

@@ -1,0 +1,12 @@
+﻿<MudItem xs="12" sm="6" md="4" xl="3">
+    <MudCard id="add_employee_button" Class="h-100 d-flex align-items-center cursor-pointer" @onclick="AddEmployee">
+        <MudCardContent Class="d-flex justify-center w-100">
+            <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Large"></MudIcon>
+        </MudCardContent>
+    </MudCard>
+</MudItem>
+
+@code {
+    [Parameter]
+    public Func<Task> AddEmployee { get; set; }
+}

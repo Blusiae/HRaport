@@ -1,0 +1,42 @@
+﻿@page "/"
+@inject NavigationManager _nav;
+@inject EmployeeService _db;
+
+<MudPaper Height="40vh" Width="40%" Class="d-flex align-items-center">
+    <MudContainer Fixed="true">
+        <h1>HRaport</h1>
+        Generator raportów o pracownikach.
+        <br />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-4" OnClick="Begin">Rozpocznij</MudButton>
+        @if(databaseExists)
+        {
+            <MudContainer Class="d-inline-flex justify-center align-items-center position-relative" Style="bottom:-4vh">
+                <MudSwitch @bind-Value="@loadFromDatabase" Color="Color.Primary" />
+                <MudText>Wczytaj dane zapisane w bazie danych</MudText>
+            </MudContainer>
+        }
+    </MudContainer>
+</MudPaper>
+
+@code{
+    private bool loadFromDatabase = true;
+    private bool databaseExists;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Baza danych jest tworzona lub, jesli istnieje, uzytkownik dostaje mozliwosc wczytania danych
+        databaseExists = await _db.CheckIfExistsAsync(); 
+
+        await base.OnInitializedAsync();
+    }
+
+    private async Task Begin()
+    {
+        if(!loadFromDatabase)
+        {
+            await _db.ClearDatabase(); // Jezeli uzytkownik nie chce korzystac z zapisanych danych, usuwa je
+        }
+
+        _nav.NavigateTo("/form");
+    }
+}

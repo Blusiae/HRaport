@@ -1,0 +1,31 @@
+﻿<MudItem xs="12" sm="6" md="4" xl="3">
+    <MudCard Class="h-100">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.body1">@Employee.GetFullName()</MudText>
+                <MudText Typo="Typo.body2">@Employee.Position</MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Medium" Color="Color.Default" OnClick="() => ModifyEmployee(Employee)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Medium" Color="Color.Error" OnClick="() => DeleteEmployee(Employee)" />
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudText><b>Płeć</b><br /><small>@Employee.Gender.ToPolishString()</small></MudText>
+                <MudText><b>Data urodzenia</b><br /><small>@Employee.Birthdate?.ToString("dd MMMM yyyy")</small></MudText>
+                <MudText><b>Data zatrudnienia</b><br /><small>@Employee.EmploymentDate?.ToString("dd MMMM yyyy")</small></MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+@code {
+    [Parameter]
+    public Employee Employee { get; set; } = new();
+
+    [Parameter]
+    public Func<Employee, Task> DeleteEmployee { get; set; }
+
+    [Parameter]
+    public Func<Employee, Task> ModifyEmployee { get; set; } 
+
+}

@@ -1,0 +1,16 @@
+#add_employee_button:hover{
+    filter:brightness(0.9);
+}
+
+@media screen and (max-width: 1900px) {
+    .responsive-height{
+        height: 50vh;
+    }
+}
+
+
+@media screen and (min-width: 1900px) {
+    .responsive-height {
+        height: 57vh;
+    }
+}

@@ -1,0 +1,207 @@
+﻿@page "/form"
+@inject IDialogService DialogService
+@inject EmployeeService _db;
+@inject ISnackbar _snackbar;
+@inject NavigationManager _nav;
+
+<h2>HRaport</h2>
+<MudProgressLinear Color="Color.Primary" Rounded="true" Value="@_progress" Class="my-2 w-50" />
+<MudPaper Height="75vh" Width="75%" Class="p-3">
+    <MudContainer Fixed="true" Class="px-5">
+        @switch(_progress)
+        {
+            case 0:
+                <h5>Podaj informacje o raporcie.</h5>
+                <MudContainer Class="mt-5 mx-auto responsive-height pt-5" Style="width: 50%;">
+                    <MudForm>
+                        <MudTextField @bind-Value="_companyName" Label="Nazwa firmy" Variant="Variant.Outlined" />
+                        <br />
+                        <MudNumericField @bind-Value="_year" Label="Rok raportu" Variant="Variant.Outlined" Min="0" />
+                        <br />
+                        <MudTextField @bind-Value="_currency" Label="Waluta wynagrodzeń" Variant="Variant.Outlined" />
+                    </MudForm>
+                </MudContainer>
+                break;
+            case 25:
+            <h5>Dodaj podstawowe informacje o swoich pracownikach.</h5>
+            <MudContainer Class="mt-5 mx-auto responsive-height" Style="overflow-y:scroll; width: 85%;">
+                <MudGrid>
+                    @foreach (var employee in Employees)
+                    {
+                        <EmployeeCard Employee="employee" DeleteEmployee="DeleteEmployee" ModifyEmployee="ModifyEmployee"></EmployeeCard>
+                    }
+
+                    <AddEmployeeButton AddEmployee="AddEmployee"></AddEmployeeButton>
+                </MudGrid>
+                </MudContainer>
+                break;
+            case 50:
+                <p>Wprowadź zarobki swoich pracowników.</p>
+                <MudContainer Class="mt-5 mx-auto responsive-height" Style="overflow-y:scroll; width: 85%;">
+                    <MudSimpleTable Style="overflow-x: auto;">
+                        <thead>
+                            <tr>
+                                <th>Imię i nazwisko</th>
+                                <th>Stanowisko</th>
+                                <th>Wynagrodzenie w roku @_year</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var employee in Employees)
+                            {
+                                <tr>
+                                    <td>@employee.GetFullName()</td>
+                                    <td>@employee.Position</td>
+                                    <td><MudNumericField Value="employee.YearSalary" Min="0" ValueChanged="async (int x) => {employee.YearSalary = x; await UpdateEmployee(employee);}" Adornment="Adornment.End" AdornmentText="@_currency" Class="w-50" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudContainer>
+                break;
+
+            case 75:
+                <h5>Oceń swoich pracowników.</h5>
+                <MudContainer Class="mt-5 mx-auto responsive-height" Style="overflow-y:scroll; width: 85%;">
+                    <MudSimpleTable Style="overflow-x: auto;" >
+                        <tbody>
+                            @foreach (var employee in Employees)
+                            {
+                                <tr>
+                                    <td>@employee.GetFullName()</td>
+                                    <td><MudRating SelectedValue="employee.Rating" SelectedValueChanged="async (x) => {employee.Rating = x; await UpdateEmployee(employee);}" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudContainer>
+                break;
+
+            case 100:
+                <h5>Wszystkie dane zebrane!</h5>
+            <MudContainer Class="mt-5 mx-auto responsive-height d-flex justify-center align-items-center" Style="overflow-y:scroll; width: 85%;">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GetToReport" Size="Size.Large">Wygeneruj raport</MudButton>
+            </MudContainer>
+                break;
+        }
+
+        <MudContainer Class="mt-3 pt-3 d-flex justify-center gap-3">
+            <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.NavigateBefore" Color="Color.Primary" OnClick="() => _progress -= 25" Disabled="_progress == 0">Wstecz</MudButton>
+            <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.NavigateNext" Color="Color.Primary" OnClick="() => _progress += 25" Disabled="_progress == 100">Dalej</MudButton>
+        </MudContainer>
+    </MudContainer>
+</MudPaper>
+
+
+@code {
+    public List<Employee> Employees { get; set; } = new();
+    private int _year = DateTime.Now.Year;
+    private int _progress = 0;
+    private string _currency = "PLN";
+    private string _companyName = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Wczytuje dane z bazy danych, jezeli jest pusta, tworzy nowa liste
+        Employees = await _db.GetAllAsync() ?? new();
+
+        await base.OnInitializedAsync();
+    }
+
+    private async Task AddEmployee()
+    {
+        // Tworzenie pop-up'u z formularzem
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<EmployeeDialog>("Dodaj pracownika", options);
+
+        // Pobranie danych wynikowych z formularza
+        using var task = dialog.Result; 
+        var result = await task;
+
+        if(!result.Canceled)
+        {
+            if(result.Data is Employee employee) // Sprawdzenie, czy dane wynikowe sa obiektem klasy Employee
+            {
+                if(await _db.CreateAsync(employee))
+                {
+                    Employees.Add(employee);
+                    ShowSuccessMessage();
+                }
+                else
+                {
+                    ShowFailureMessage();
+                }
+            }
+        }
+    }
+
+    private async Task ModifyEmployee(Employee employee)
+    {
+        // Ustawienie parametrow pop-up'u z formularzem
+        var parameters = new DialogParameters<EmployeeDialog>();
+        parameters.Add(x => x.Model, employee);
+
+        // Tworzenie pop-up'u z formularzem
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<EmployeeDialog>("Edytowanie pracownika", parameters, options);
+
+        // Pobranie danych wynikowych z formularza
+        using var task = dialog.Result;
+        var result = await task;
+
+        if (!result.Canceled)
+        {
+            if (result.Data is Employee modifiedEmployee) // Sprawdzenie, czy dane wynikowe sa obiektem klasy Employee
+            {
+                await UpdateEmployee(modifiedEmployee);
+            }
+        }
+    }
+
+    private async Task DeleteEmployee(Employee employee)
+    {
+        if(await _db.DeleteAsync(employee))
+        {
+            Employees.Remove(employee);
+            ShowSuccessMessage();
+            this.StateHasChanged();
+        }
+        else
+        {
+            ShowFailureMessage();
+        }
+    }
+
+    private async Task UpdateEmployee(Employee employee)
+    {
+        if (await _db.UpdateAsync(employee))
+        {
+            ShowSuccessMessage();
+        }
+        else
+        {
+            ShowFailureMessage();
+        }
+    }
+
+    private void ShowSuccessMessage()
+    {
+        _snackbar.Add("Pomyślnie zaktualizowano bazę danych.", Severity.Success, config =>
+        {
+            config.Icon = Icons.Custom.Uncategorized.AlertSuccess;
+        });
+    }
+
+    private void ShowFailureMessage()
+    {
+        _snackbar.Add("Nie udało się zaktualizować bazy danych.", Severity.Error, config =>
+        {
+            config.Icon = Icons.Material.Filled.ErrorOutline;
+        });
+    }
+
+    private void GetToReport()
+    {
+        _nav.NavigateTo($"/report/{_currency}&{_year}&{_companyName}");
+    }
+}
